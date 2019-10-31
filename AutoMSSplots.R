@@ -2,8 +2,6 @@
 ##It pulls data directly from the server, plots it, and puts the plot onto google drive.
 ##The webiste then pulls the plots directly from google drive with a linked url.
 
-# I'd be totally lying if I said I understood why it always thinks this file is up-to-date.
-
 #start of every script
 rm(list=ls())
 #SC###################################################################################################################
