@@ -141,6 +141,7 @@ today=today[is.nan(today$SURF_TEMP_C)==F,]
 today=today[today$TEMP_FLAG=='0' | today$TEMP_FLAG=='7',]
 stack2=stack[stack$YEAR!=as.numeric(substr(Sys.Date(),1,4)),]
 df=data.frame(day=NA,SURFmin=NA,SURFmax=NA,SURFmean=NA,SURFthisYear=NA)
+stack2=stack2[-c(which(is.na(stack2$MonthDayChar))),]
 for(i in 1:length(unique(stack2$MonthDayChar))){
   df=rbind(df,c(unique(stack2$MonthDayChar)[i],min(as.numeric(na.omit(stack2$SURF_TEMP_C[stack2$MonthDayChar==unique(stack2$MonthDayChar)[i]]))),max(as.numeric(na.omit(stack2$SURF_TEMP_C[stack2$MonthDayChar==unique(stack2$MonthDayChar)[i]]))),mean(as.numeric(na.omit(stack2$SURF_TEMP_C[stack2$MonthDayChar==unique(stack2$MonthDayChar)[i]]))),NA))
 }
@@ -155,7 +156,7 @@ for(i in 1:length(df$day)){
 }
 for(i in 1:length(df$day)){
   SST=stack$SURF_TEMP_C[stack$YEAR==as.numeric(substr(Sys.Date(),1,4))-1 & stack$MonthDayChar==df$day[i]]
-  if(length(SST)!=0){df$SURFlastYear[i]=SST}
+  if(length(SST)!=0){df$SURFlastYear[i]=SST[1]}
 }
 df$SURFlastYear[which(df$SURFlastYear=="NaN")]=NA
 df$SURFthisYear=as.numeric(df$SURFthisYear)
