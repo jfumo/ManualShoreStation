@@ -549,6 +549,7 @@ points(as.numeric(na.omit(df$SURFthisYear[as.numeric(df$SURFthisYear)>as.numeric
 points(as.numeric(na.omit(df$SURFthisYear[as.numeric(df$SURFthisYear)<as.numeric(df$SURFmin)]))~na.omit(df$time[as.numeric(df$SURFthisYear)<as.numeric(df$SURFmin)]),pch=20,col='blue')
 legend('topleft',legend=as.vector(c(paste("Julian Day Range of Observed Temperatures (1925-",as.character(as.numeric(substr(Sys.Date(),1,4))-1),')',sep=''),'Average Annual Cycle',paste(substr(Sys.Date(),1,4),"(Preliminary)"),paste("Julian Day Record High (",substr(Sys.Date(),1,4),')',sep=''))),bty='n',lty=c(NA,2,1,NA),pch=c(15,NA,NA,20),col=c('gray','black','blue','red'))
 legend('bottomright',legend=as.vector(c("Manual Shore Station Program","California State Parks Division of Boating and Waterways","scripps.ucsd.edu/programs/shorestations/")),text.col=c('black','black','blue'),bty='n',cex=.8)
+legend('bottomleft',legend=as.vector(c("Fumo/ Carter")),col='gray',bty='n',cex=.75)
 dev.off()
 
 drive_update(file=as_id("https://drive.google.com/a/ucsd.edu/file/d/1UXf1k5MZjCtODL2U5tqmAKccpAyVK9pF/view?usp=sharing"),media=paste(getwd(),"/History of SST Today FAR.pdf",sep=''))
