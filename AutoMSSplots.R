@@ -557,3 +557,110 @@ drive_update(file=as_id("https://drive.google.com/a/ucsd.edu/file/d/1F5SNW3OvSR8
 
 
 
+#HSU Beach###################################################################################################################
+setwd("/home/rstudio/jfumo/sccoos/manual_shore_station/DATA/TEMPERATURE/CURRENT/9_HSU")
+stack=suppressWarnings(as.data.frame(read_excel(as.character(na.omit(dir()[str_extract(dir(),'\\d\\d\\d\\d\\d\\d\\d\\d')==max(na.omit(str_extract(dir(),'\\d\\d\\d\\d\\d\\d\\d\\d')))])),1)))
+which(stack[,1]=='YEAR')
+stack=stack[c(which(stack[,1]=='YEAR'):length(stack[,1])),]
+colnames(stack)=stack[1,]
+stack=stack[-1,]
+stack$TRINIDAD_BEACH_SURF_TEMP_C=suppressWarnings(as.numeric(stack$TRINIDAD_BEACH_SURF_TEMP_C))
+stack$date=as.POSIXct(strptime(paste(as.character(stack$YEAR),as.character(stack$MONTH),as.character(stack$DAY),sep='-'),'%Y-%m-%d'))
+stack$MonthDayChar=paste(str_pad(as.character(stack$MONTH),side='left',pad='0',width=2),str_pad(as.character(stack$DAY),side='left',pad='0',width=2),sep='-')
+stack$BEACH_FLAG[is.nan(stack$BEACH_FLAG)==T]=0
+today=stack[stack$MonthDayChar==tail(stack$MonthDayChar,1),]
+today=today[is.nan(today$SURF_TEMP_C)==F,]
+today=today[today$BEACH_FLAG=='0' | today$BEACH_FLAG=='7',]
+stack2=stack[stack$YEAR!=as.numeric(substr(Sys.Date(),1,4)),]
+df=data.frame(day=NA,SURFmin=NA,SURFmax=NA,SURFmean=NA,SURFthisYear=NA)
+for(i in 1:length(unique(stack2$MonthDayChar))){
+  df=rbind(df,c(unique(stack2$MonthDayChar)[i],min(as.numeric(na.omit(stack2$TRINIDAD_BEACH_SURF_TEMP_C[stack2$MonthDayChar==unique(stack2$MonthDayChar)[i]]))),max(as.numeric(na.omit(stack2$TRINIDAD_BEACH_SURF_TEMP_C[stack2$MonthDayChar==unique(stack2$MonthDayChar)[i]]))),mean(as.numeric(na.omit(stack2$TRINIDAD_BEACH_SURF_TEMP_C[stack2$MonthDayChar==unique(stack2$MonthDayChar)[i]]))),NA))
+}
+df=df[-1,]
+df$dayYear=paste("2000",df$day,sep='-')
+df$time=as.POSIXct(strptime(df$dayYear,'%Y-%m-%d'))
+df=df[order(df$time),]
+rm(stack2)
+for(i in 1:length(df$day)){
+  if(length(stack$YEAR[stack$YEAR==substr(Sys.Date(),1,4) & stack$MonthDayChar==unique(df$day)[i]])==0){next}
+  df$SURFthisYear[i]=stack$TRINIDAD_BEACH_SURF_TEMP_C[as.character(stack$YEAR)==substr(Sys.Date(),1,4) & stack$MonthDayChar==unique(df$day)[i]]
+}
+for(i in 1:length(df$day)){
+  SST=stack$TRINIDAD_BEACH_SURF_TEMP_C[stack$YEAR==as.numeric(substr(Sys.Date(),1,4))-1 & stack$MonthDayChar==df$day[i]]
+  if(length(SST)!=0){df$SURFlastYear[i]=SST}
+}
+df$SURFlastYear[which(df$SURFlastYear=="NaN")]=NA
+df$SURFthisYear=as.numeric(df$SURFthisYear)
+df=df[-which(is.nan(as.numeric(df$SURFmean))),]
+
+setwd("/home/rstudio/jfumo/sccoos/manual_shore_station/DATA/TEMPERATURE/AutomatedPlotsForMSSwebsite")
+pdf("SST This Year HSU Beach.pdf",width=11,height=8.5,encoding='MacRoman')
+plot(x=range(df$time),y=range(c(as.numeric(na.omit(as.numeric(df$SURFmin))),as.numeric(na.omit(as.numeric(df$SURFmax))),as.numeric(na.omit(as.numeric(df$SURFmean))),as.numeric(na.omit(as.numeric(df$SURFthisYear))),as.numeric(na.omit(as.numeric(df$BOTmin))),as.numeric(na.omit(as.numeric(df$BOTmax))),as.numeric(na.omit(as.numeric(df$BOTthisYear))))),type='n',ylab="Temperature (C)",xlab="Date",main=paste("Trinidad Beach SST (C) In",substr(Sys.Date(),1,4)))
+polygon(c(df$time,rev(df$time)),c(df$SURFmax,rev(df$SURFmin)),col='gray',border=NA)
+lines(SURFmean~time,data=df[is.nan(df$SURFmean)==F,],type='l',col='black',lty=2)
+lines(df$SURFlastYear[is.na(df$SURFlastYear)==F]~df$time[is.na(df$SURFlastYear)==F],type='l',col='gray50')
+lines(df$SURFthisYear[is.na(df$SURFthisYear)==F]~df$time[is.na(df$SURFthisYear)==F],type='l',col='blue',lwd=2)
+points(as.numeric(na.omit(df$SURFthisYear[as.numeric(df$SURFthisYear)>as.numeric(df$SURFmax)]))~na.omit(df$time[as.numeric(df$SURFthisYear)>as.numeric(df$SURFmax)]),pch=20,col='red')
+points(as.numeric(na.omit(df$SURFthisYear[as.numeric(df$SURFthisYear)<as.numeric(df$SURFmin)]))~na.omit(df$time[as.numeric(df$SURFthisYear)<as.numeric(df$SURFmin)]),pch=20,col='blue')
+legend('topleft',legend=as.vector(c(paste("Julian Day Range of Observed Temperatures (1973-",as.character(as.numeric(substr(Sys.Date(),1,4))-1),')',sep=''),'Average Annual Cycle',paste(as.numeric(substr(Sys.Date(),1,4))-1,"SST"),paste(substr(Sys.Date(),1,4),"(Preliminary)"),paste("Julian Day Record High (",substr(Sys.Date(),1,4),')',sep=''),paste("Julian Day Record Low (",substr(Sys.Date(),1,4),')',sep=''))),bty='n',lty=c(NA,2,1,1,NA,NA),pch=c(15,NA,NA,NA,20,20),col=c('gray','black','gray50','blue','red','purple'))
+legend('topright',legend=as.vector(c(paste('Latest data from:',substr(stack$date[max(which(is.na(stack$TRINIDAD_BEACH_SURF_TEMP_C)==F))],1,10)))),bty='n')
+legend('bottomright',legend=as.vector(c("Manual Shore Station Program","California State Parks Division of Boating and Waterways","scripps.ucsd.edu/programs/shorestations/")),text.col=c('black','black','blue'),bty='n',cex=.8)
+legend('bottomleft',legend=as.vector(c("Fumo/ Carter")),col='gray',bty='n',cex=.75)
+dev.off()
+#and put them all on the team drive
+drive_update(file=as_id("https://drive.google.com/a/ucsd.edu/file/d/1xsmK5puvPz_UKQ0eQUYIohb9edhPh3iX/view?usp=sharing"),media=paste(getwd(),"/SST This Year HSU Beach.pdf",sep=''))
+
+
+
+#HSU Bay###################################################################################################################
+setwd("/home/rstudio/jfumo/sccoos/manual_shore_station/DATA/TEMPERATURE/CURRENT/9_HSU")
+stack=suppressWarnings(as.data.frame(read_excel(as.character(na.omit(dir()[str_extract(dir(),'\\d\\d\\d\\d\\d\\d\\d\\d')==max(na.omit(str_extract(dir(),'\\d\\d\\d\\d\\d\\d\\d\\d')))])),1)))
+which(stack[,1]=='YEAR')
+stack=stack[c(which(stack[,1]=='YEAR'):length(stack[,1])),]
+colnames(stack)=stack[1,]
+stack=stack[-1,]
+stack$TRINIDAD_BAY_SURF_TEMP_C=suppressWarnings(as.numeric(stack$TRINIDAD_BAY_SURF_TEMP_C))
+stack$date=as.POSIXct(strptime(paste(as.character(stack$YEAR),as.character(stack$MONTH),as.character(stack$DAY),sep='-'),'%Y-%m-%d'))
+stack$MonthDayChar=paste(str_pad(as.character(stack$MONTH),side='left',pad='0',width=2),str_pad(as.character(stack$DAY),side='left',pad='0',width=2),sep='-')
+stack$BAY_FLAG[is.nan(stack$BAY_FLAG)==T]=0
+today=stack[stack$MonthDayChar==tail(stack$MonthDayChar,1),]
+today=today[is.nan(today$SURF_TEMP_C)==F,]
+today=today[today$BAY_FLAG=='0' | today$BAY_FLAG=='7',]
+stack2=stack[stack$YEAR!=as.numeric(substr(Sys.Date(),1,4)),]
+df=data.frame(day=NA,SURFmin=NA,SURFmax=NA,SURFmean=NA,SURFthisYear=NA)
+for(i in 1:length(unique(stack2$MonthDayChar))){
+  df=rbind(df,c(unique(stack2$MonthDayChar)[i],min(as.numeric(na.omit(stack2$TRINIDAD_BAY_SURF_TEMP_C[stack2$MonthDayChar==unique(stack2$MonthDayChar)[i]]))),max(as.numeric(na.omit(stack2$TRINIDAD_BAY_SURF_TEMP_C[stack2$MonthDayChar==unique(stack2$MonthDayChar)[i]]))),mean(as.numeric(na.omit(stack2$TRINIDAD_BAY_SURF_TEMP_C[stack2$MonthDayChar==unique(stack2$MonthDayChar)[i]]))),NA))
+}
+df=df[-1,]
+df$dayYear=paste("2000",df$day,sep='-')
+df$time=as.POSIXct(strptime(df$dayYear,'%Y-%m-%d'))
+df=df[order(df$time),]
+rm(stack2)
+for(i in 1:length(df$day)){
+  if(length(stack$YEAR[stack$YEAR==substr(Sys.Date(),1,4) & stack$MonthDayChar==unique(df$day)[i]])==0){next}
+  df$SURFthisYear[i]=stack$TRINIDAD_BAY_SURF_TEMP_C[as.character(stack$YEAR)==substr(Sys.Date(),1,4) & stack$MonthDayChar==unique(df$day)[i]]
+}
+for(i in 1:length(df$day)){
+  SST=stack$TRINIDAD_BAY_SURF_TEMP_C[stack$YEAR==as.numeric(substr(Sys.Date(),1,4))-1 & stack$MonthDayChar==df$day[i]]
+  if(length(SST)!=0){df$SURFlastYear[i]=SST}
+}
+df$SURFlastYear[which(df$SURFlastYear=="NaN")]=NA
+df$SURFthisYear=as.numeric(df$SURFthisYear)
+df=df[-which(is.nan(as.numeric(df$SURFmean))),]
+
+setwd("/home/rstudio/jfumo/sccoos/manual_shore_station/DATA/TEMPERATURE/AutomatedPlotsForMSSwebsite")
+pdf("SST This Year HSU Bay.pdf",width=11,height=8.5,encoding='MacRoman')
+plot(x=range(df$time),y=range(c(as.numeric(na.omit(as.numeric(df$SURFmin))),as.numeric(na.omit(as.numeric(df$SURFmax))),as.numeric(na.omit(as.numeric(df$SURFmean))),as.numeric(na.omit(as.numeric(df$SURFthisYear))),as.numeric(na.omit(as.numeric(df$BOTmin))),as.numeric(na.omit(as.numeric(df$BOTmax))),as.numeric(na.omit(as.numeric(df$BOTthisYear))))),type='n',ylab="Temperature (C)",xlab="Date",main=paste("Trinidad Bay SST (C) In",substr(Sys.Date(),1,4)))
+polygon(c(df$time,rev(df$time)),c(df$SURFmax,rev(df$SURFmin)),col='gray',border=NA)
+lines(SURFmean~time,data=df[is.nan(df$SURFmean)==F,],type='l',col='black',lty=2)
+lines(df$SURFlastYear[is.na(df$SURFlastYear)==F]~df$time[is.na(df$SURFlastYear)==F],type='l',col='gray50')
+lines(df$SURFthisYear[is.na(df$SURFthisYear)==F]~df$time[is.na(df$SURFthisYear)==F],type='l',col='blue',lwd=2)
+points(as.numeric(na.omit(df$SURFthisYear[as.numeric(df$SURFthisYear)>as.numeric(df$SURFmax)]))~na.omit(df$time[as.numeric(df$SURFthisYear)>as.numeric(df$SURFmax)]),pch=20,col='red')
+points(as.numeric(na.omit(df$SURFthisYear[as.numeric(df$SURFthisYear)<as.numeric(df$SURFmin)]))~na.omit(df$time[as.numeric(df$SURFthisYear)<as.numeric(df$SURFmin)]),pch=20,col='blue')
+legend('topleft',legend=as.vector(c(paste("Julian Day Range of Observed Temperatures (1973-",as.character(as.numeric(substr(Sys.Date(),1,4))-1),')',sep=''),'Average Annual Cycle',paste(as.numeric(substr(Sys.Date(),1,4))-1,"SST"),paste(substr(Sys.Date(),1,4),"(Preliminary)"),paste("Julian Day Record High (",substr(Sys.Date(),1,4),')',sep=''),paste("Julian Day Record Low (",substr(Sys.Date(),1,4),')',sep=''))),bty='n',lty=c(NA,2,1,1,NA,NA),pch=c(15,NA,NA,NA,20,20),col=c('gray','black','gray50','blue','red','purple'))
+legend('topright',legend=as.vector(c(paste('Latest data from:',substr(stack$date[max(which(is.na(stack$TRINIDAD_BAY_SURF_TEMP_C)==F))],1,10)))),bty='n')
+legend('bottomright',legend=as.vector(c("Manual Shore Station Program","California State Parks Division of Boating and Waterways","scripps.ucsd.edu/programs/shorestations/")),text.col=c('black','black','blue'),bty='n',cex=.8)
+legend('bottomleft',legend=as.vector(c("Fumo/ Carter")),col='gray',bty='n',cex=.75)
+dev.off()
+#and put them all on the team drive
+drive_update(file=as_id("https://drive.google.com/a/ucsd.edu/file/d/1ZXZ7XT9dZv4cVZtBNAU2xSQ70K15Fsue/view?usp=sharing"),media=paste(getwd(),"/SST This Year HSU Bay.pdf",sep=''))
